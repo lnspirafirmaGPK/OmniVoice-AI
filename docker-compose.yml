@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  omnivoice-api:
+    build: .
+    container_name: omnivoice-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: omnivoice-redis
+    ports:
+      - "6379:6379"
