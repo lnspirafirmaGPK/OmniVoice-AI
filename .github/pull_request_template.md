@@ -1,13 +1,27 @@
+# Pull Request — OmniVoice AI
+
 ## Summary
-- Describe key changes
+Describe the purpose of this pull request.
 
-## CI/CD Checklist
-- [ ] Lint and tests pass locally
-- [ ] CI workflow passes
-- [ ] Security workflow passes or has approved exceptions
-- [ ] Rollback plan documented (if production-impacting)
+Include:
+- What problem this PR solves
+- Key architectural or behavior changes
+- Relevant issue or task reference
 
-## Deployment Notes
-- Environment(s):
-- Expected impact:
-- Rollback steps:
+Example:
+- Adds new voice intent handler for order status
+- Improves call routing logic
+- Fixes API authentication issue
+
+---
+
+## AI / Voice Agent Impact
+Indicate whether this change affects AI conversation behavior.
+
+- [ ] No AI behavior changes
+- [ ] Conversation flow updated
+- [ ] New intent or response logic added
+- [ ] Voice call handling updated
+- [ ] AI sales or booking flow updated
+
+Details:
