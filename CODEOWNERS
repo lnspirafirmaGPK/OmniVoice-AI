@@ -1,0 +1,11 @@
+# Global repository owners
+* @lnspirafirmaGPK
+
+# Backend
+/src/ @lnspirafirmaGPK
+
+# Documentation
+/docs/ @lnspirafirmaGPK
+
+# CI/CD
+/.github/ @lnspirafirmaGPK
