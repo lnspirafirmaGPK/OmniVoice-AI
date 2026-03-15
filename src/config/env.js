@@ -50,6 +50,9 @@ export const env = {
 
   defaultStoreName: process.env.DEFAULT_STORE_NAME || "OmniVoice AI Demo Store",
   defaultCurrency: process.env.DEFAULT_CURRENCY || "THB",
+
+  apiVersion: process.env.API_VERSION || "v1",
+  defaultTenantIsolationMode: process.env.DEFAULT_TENANT_ISOLATION_MODE || "row_level",
   salesHandoffEmail: process.env.SALES_HANDOFF_EMAIL || "sales@example.com",
   appointmentTimezone: process.env.APPOINTMENT_TIMEZONE || "Asia/Bangkok",
 };

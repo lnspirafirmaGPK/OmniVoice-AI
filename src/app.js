@@ -3,46 +3,68 @@ import path from "node:path";
 import { env, projectRoot } from "./config/env.js";
 import pipelineRoutes from "./routes/pipelineRoutes.js";
 import telephonyRoutes from "./routes/telephonyRoutes.js";
+import opsRoutes from "./routes/opsRoutes.js";
+import saasRoutes from "./saas/routes/saasRoutes.js";
+import { requestContext } from "./saas/middleware/requestContext.js";
 import { logger } from "./utils/logger.js";
 
-const app = express();
+export function createApp() {
+  const app = express();
 
-app.use(express.json({ limit: "10mb" }));
-app.use("/audio", express.static(path.join(projectRoot, "public", "audio")));
+  app.use(express.json({ limit: "10mb" }));
+  app.use(requestContext);
+  app.use("/audio", express.static(path.join(projectRoot, "public", "audio")));
 
-app.get("/", (_req, res) => {
-  res.json({
-    name: "OmniVoice AI",
-    status: "ok",
-    endpoints: {
-      health: "/health",
-      pipeline: "/api/pipeline/run-turn",
-      twilio: "/api/webhooks/twilio/voice",
-      telnyx: "/api/webhooks/telnyx/voice",
-      sipBridge: "/api/webhooks/sip/events",
-    },
+  app.get("/", (_req, res) => {
+    res.json({
+      name: "OmniVoice AI",
+      status: "ok",
+      endpoints: {
+        health: "/health/live",
+        readiness: "/health/ready",
+        metrics: "/health/metrics",
+        pipeline: "/api/pipeline/run-turn",
+        twilio: "/api/webhooks/twilio/voice",
+        telnyx: "/api/webhooks/telnyx/voice",
+        sipBridge: "/api/webhooks/sip/events",
+        saasApiV1: "/api/v1",
+      },
+    });
   });
-});
 
-app.get("/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    service: "OmniVoice AI",
-    time: new Date().toISOString(),
+  app.get("/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      service: "OmniVoice AI",
+      time: new Date().toISOString(),
+    });
   });
-});
 
-app.use("/api/pipeline", pipelineRoutes);
-app.use("/api/webhooks", telephonyRoutes);
+  app.use("/health", opsRoutes);
+  app.use("/api/pipeline", pipelineRoutes);
+  app.use("/api/webhooks", telephonyRoutes);
+  app.use("/api/v1", saasRoutes);
 
-app.use((error, _req, res, _next) => {
-  logger.error("Unhandled app error", { error: error.message });
-  res.status(500).json({ error: "Internal Server Error" });
-});
-
-app.listen(env.port, () => {
-  logger.info("OmniVoice AI server started", {
-    port: env.port,
-    appBaseUrl: env.appBaseUrl,
+  app.use((error, req, res, _next) => {
+    logger.error("Unhandled app error", { error: error.message, requestId: req.context?.requestId });
+    res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Internal Server Error",
+        requestId: req.context?.requestId,
+      },
+    });
   });
-});
+
+  return app;
+}
+
+export function startServer() {
+  const app = createApp();
+  app.listen(env.port, () => {
+    logger.info("OmniVoice AI server started", {
+      port: env.port,
+      appBaseUrl: env.appBaseUrl,
+    });
+  });
+}

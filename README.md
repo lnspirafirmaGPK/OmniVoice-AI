@@ -154,6 +154,25 @@ erDiagram
     }
 ```
 
+
+## SaaS MVP API (Multi-tenant)
+
+รอบนี้เพิ่ม API สำหรับ SaaS MVP ที่รองรับ multi-tenant, billing plan, RBAC, audit log และ observability ขั้นต้น
+
+- Base URL version: `/api/v1`
+- ตัวอย่าง token สำหรับ dev:
+  - `platform-admin-token`
+  - `tenant-admin-token`
+  - `tenant-agent-token`
+- Health/metrics:
+  - `/health/live`
+  - `/health/ready`
+  - `/health/metrics`
+
+อ่านรายละเอียดเพิ่มเติม:
+- `docs/saas-mvp-architecture.md`
+- `docs/runbook-mvp.md`
+
 ## Getting Started
 
 ```bash
