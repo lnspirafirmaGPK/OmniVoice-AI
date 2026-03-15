@@ -1,0 +1,90 @@
+name: docs-guard
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs-policy:
+    name: Enforce product naming and doc policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changed documentation files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+          fi
+
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE=$(git rev-list --max-parents=0 HEAD)
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD" -- '*.md' '*.mdx' '*.txt' '*.yaml' '*.yml' || true)
+
+          echo "Changed docs/config files:"
+          echo "$CHANGED"
+
+          if [ -z "$CHANGED" ]; then
+            echo "No relevant documentation files changed."
+            exit 0
+          fi
+
+          FAIL=0
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            [ ! -f "$file" ] && continue
+
+            if grep -nE 'OmniCore AI' "$file"; then
+              echo "::error file=$file::Legacy product name 'OmniCore AI' found. Use 'OmniVoice AI' for new edits."
+              FAIL=1
+            fi
+          done <<< "$CHANGED"
+
+          if printf '%s\n' "$CHANGED" | grep -qx 'README.md'; then
+            if ! grep -qi 'OmniVoice AI' README.md; then
+              echo "::error file=README.md::README.md must reference OmniVoice AI."
+              FAIL=1
+            fi
+
+            if ! grep -qi 'AI รับสายโทรศัพท์อัตโนมัติ' README.md; then
+              echo "::warning file=README.md::Consider adding the standard product description from AGENTS.md for clarity."
+            fi
+          fi
+
+          if [ "$FAIL" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Summarize documentation policy
+        if: always()
+        run: |
+          cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          ## Documentation guardrails
+          Checked changed documentation for:
+          - legacy product naming
+          - primary product naming consistency
+          - README clarity aligned with AGENTS.md
+          EOF

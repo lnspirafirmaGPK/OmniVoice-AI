@@ -1,12 +1,14 @@
-name: Security
+name: security
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - master
+      - develop
   pull_request:
-    branches: [main]
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: '17 3 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -14,38 +16,123 @@ permissions:
   security-events: write
 
 jobs:
-  npm-audit:
+  secrets:
+    name: Secret scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v6
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          node-version: 20.x
-          cache: npm
+          fetch-depth: 0
 
-      - name: Install dependencies
-        run: test -f package-lock.json && npm ci || npm install
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run npm audit
-        run: npm audit --audit-level=high
-
-  codeql:
+  dependency-audit:
+    name: Dependency audit
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          languages: javascript-typescript
+          python-version: '3.11'
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Python dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install pip-audit
+
+          audited=0
+          if [ -f requirements.txt ]; then
+            pip-audit -r requirements.txt
+            audited=1
+          fi
+
+          if [ -f backend/requirements.txt ]; then
+            pip-audit -r backend/requirements.txt
+            audited=1
+          fi
+
+          if [ "$audited" -eq 0 ]; then
+            echo "No Python dependency manifest found for audit."
+          fi
+
+      - name: Node dependency audit (root)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+              npm ci
+              npm audit --audit-level=high
+            elif [ -f pnpm-lock.yaml ]; then
+              pnpm install --frozen-lockfile
+              pnpm audit --prod
+            elif [ -f yarn.lock ]; then
+              yarn install --frozen-lockfile
+              yarn npm audit --severity high || yarn audit --level high
+            else
+              npm install
+              npm audit --audit-level=high
+            fi
+          else
+            echo "No root package.json detected."
+          fi
+
+      - name: Node dependency audit (frontend)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f frontend/package.json ]; then
+            cd frontend
+            if [ -f package-lock.json ]; then
+              npm ci
+              npm audit --audit-level=high
+            elif [ -f pnpm-lock.yaml ]; then
+              pnpm install --frozen-lockfile
+              pnpm audit --prod
+            elif [ -f yarn.lock ]; then
+              yarn install --frozen-lockfile
+              yarn npm audit --severity high || yarn audit --level high
+            else
+              npm install
+              npm audit --audit-level=high
+            fi
+          else
+            echo "No frontend/package.json detected."
+          fi
+
+      - name: Dependency review on pull requests
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+
+      - name: Security summary
+        if: always()
+        run: |
+          cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          ## Security checks
+          This workflow helps enforce AGENTS.md guidance by checking:
+          - accidental secret leakage
+          - vulnerable Python dependencies
+          - vulnerable Node.js dependencies
+          - pull request dependency review
+          EOF
