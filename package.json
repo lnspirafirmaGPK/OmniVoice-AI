@@ -1,44 +1,46 @@
 {
   "name": "omnivoice-ai",
-  "version": "0.1.0",
-  "description": "OmniVoice AI - AI voice agent platform for automated e-commerce call handling and sales",
+  "version": "0.2.0",
+  "description": "OmniVoice AI - AI voice call pipeline, telephony webhooks, and AI sales conversation engine for e-commerce",
   "private": true,
-  "main": "src/app.js",
   "type": "module",
+  "main": "src/app.js",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
-    "build": "echo \"No build step configured\"",
-    "lint": "eslint src --ext .js || echo \"lint skipped\"",
-    "format": "prettier --write .",
-    "test": "jest --passWithNoTests",
-    "test:watch": "jest --watch",
+    "dev": "node --watch src/app.js",
+    "build": "node -e \"console.log('No build step configured for OmniVoice AI')\"",
+    "lint": "node -e \"console.log('Lint not configured yet. Add eslint.config.mjs when ready.')\"",
+    "test": "node --test",
     "health": "node -e \"console.log('OmniVoice AI service OK')\""
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^5.2.1",
-    "helmet": "^7.0.0",
-    "morgan": "^1.10.0"
+    "dotenv": "^16.4.6",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "openai": "^6.16.0",
+    "telnyx": "^1.25.5",
+    "twilio": "^5.9.0"
   },
   "devDependencies": {
-    "eslint": "^9.9.0",
-    "jest": "^29.7.0",
-    "nodemon": "^3.1.4",
-    "prettier": "^3.3.3"
+    "prettier": "^3.6.2"
   },
   "keywords": [
-    "ai",
+    "omnivoice",
     "voice-agent",
     "call-automation",
+    "telephony",
+    "twilio",
+    "telnyx",
+    "openai",
     "ecommerce",
-    "customer-support",
-    "sales-bot",
-    "omnivoice"
+    "sales",
+    "customer-support"
   ],
   "author": "INSPIRAFIRMA",
   "license": "MIT"
