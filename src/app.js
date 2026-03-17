@@ -4,6 +4,7 @@ import { env, projectRoot } from "./config/env.js";
 import pipelineRoutes from "./routes/pipelineRoutes.js";
 import telephonyRoutes from "./routes/telephonyRoutes.js";
 import opsRoutes from "./routes/opsRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 import saasRoutes from "./saas/routes/saasRoutes.js";
 import { requestContext } from "./saas/middleware/requestContext.js";
 import { logger } from "./utils/logger.js";
@@ -13,6 +14,7 @@ export function createApp() {
 
   app.use(express.json({ limit: "10mb" }));
   app.use(requestContext);
+  app.use(express.static(path.join(projectRoot, "public")));
   app.use("/audio", express.static(path.join(projectRoot, "public", "audio")));
 
   app.get("/", (_req, res) => {
@@ -43,6 +45,7 @@ export function createApp() {
   app.use("/health", opsRoutes);
   app.use("/api/pipeline", pipelineRoutes);
   app.use("/api/webhooks", telephonyRoutes);
+  app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/v1", saasRoutes);
 
   app.use((error, req, res, _next) => {

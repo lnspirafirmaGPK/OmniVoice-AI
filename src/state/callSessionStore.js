@@ -18,3 +18,7 @@ export function appendTurn(callId, turn) {
 export function getCallSession(callId) {
   return callSessions.get(callId) || null;
 }
+
+export function listCallSessions() {
+  return Array.from(callSessions.values());
+}
