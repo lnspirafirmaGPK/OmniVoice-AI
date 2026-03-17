@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html class="h-full" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>OmniVoice AI | Active Agent Workspace</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'voice-dark': '#0a0c10',
+            'voice-accent': '#00f2fe',
+            'voice-teal': '#4facfe',
+            'glass-border': 'rgba(255, 255, 255, 0.1)',
+            'glass-bg': 'rgba(255, 255, 255, 0.03)'
+          },
+          backgroundImage: {
+            'glow-gradient': 'radial-gradient(circle at 50% 50%, rgba(79, 172, 254, 0.15) 0%, transparent 70%)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glass-panel {
+      background: rgba(13, 17, 23, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .glow-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: radial-gradient(circle at 0% 0%, rgba(79, 172, 254, 0.05) 0%, transparent 40%),
+                  radial-gradient(circle at 100% 100%, rgba(0, 242, 254, 0.05) 0%, transparent 40%);
+      z-index: -1;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(79, 172, 254, 0.3); border-radius: 10px; }
+    .wave-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 120px; overflow: hidden; pointer-events: none; }
+    .wave-canvas { width: 100%; height: 100%; }
+  </style>
+</head>
+<body class="bg-voice-dark text-slate-200 h-full overflow-hidden font-sans">
+<div class="glow-overlay"></div>
+<main class="h-full flex flex-col p-4 md:p-6 gap-6 max-w-[1920px] mx-auto relative z-10">
+  <header class="flex items-center justify-between px-2">
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-voice-teal to-voice-accent flex items-center justify-center shadow-lg shadow-voice-teal/20">
+        <svg class="w-6 h-6 text-voice-dark" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      </div>
+      <div>
+        <h1 class="font-bold text-xl tracking-tight">OmniVoice <span class="text-voice-accent">AI</span></h1>
+        <p class="text-xs text-slate-400 flex items-center gap-1.5" id="agentStatus">
+          <span class="w-2 h-2 bg-slate-500 rounded-full"></span>
+          Waiting for Call...
+        </p>
+      </div>
+    </div>
+    <div class="flex items-center gap-6">
+      <a href="config.html" class="px-4 py-2 glass-panel hover:bg-white/10 transition-colors text-sm font-medium rounded-lg">Config</a>
+      <div class="hidden md:flex flex-col items-end">
+        <span class="text-xs text-slate-500 uppercase tracking-widest">Sentiment</span>
+        <span class="text-emerald-400 font-medium" id="sentimentValue">Neutral (0.50)</span>
+      </div>
+      <button class="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-6 py-2 rounded-full border border-red-500/30 transition-all font-medium">
+        End Session
+      </button>
+    </div>
+  </header>
+
+  <div class="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+    <section class="flex-1 glass-panel rounded-3xl p-6 flex flex-col min-h-0">
+      <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400">Live Transcript</h2>
+        <span class="text-[10px] bg-voice-teal/10 text-voice-teal px-2 py-1 rounded border border-voice-teal/20">REAL-TIME</span>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2" id="transcriptContainer">
+        <!-- Transcript turns will be injected here -->
+      </div>
+    </section>
+
+    <section class="lg:w-[450px] glass-panel rounded-3xl p-6 flex flex-col">
+      <div class="flex items-center justify-between mb-8">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400">Action Canvas</h2>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 bg-voice-accent rounded-full"></span>
+          <span class="text-xs text-voice-accent font-medium">Auto-Populating</span>
+        </div>
+      </div>
+      <div class="space-y-6">
+        <div class="relative group">
+          <label class="text-[10px] text-voice-teal font-bold uppercase mb-1 block ml-1">Patient Name</label>
+          <input class="w-full bg-white/5 border-voice-teal/30 rounded-xl px-4 py-3 text-slate-100 focus:ring-voice-teal transition-all ring-1 ring-voice-teal/20" id="patientName" readonly="" type="text" value="Sarah Jenkins"/>
+          <div class="absolute right-3 top-9 text-voice-teal">
+            <svg class="w-5 h-5" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill-rule="evenodd"></path></svg>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="relative">
+            <label class="text-[10px] text-slate-500 font-bold uppercase mb-1 block ml-1">Date</label>
+            <input class="w-full bg-white/5 border-white/10 rounded-xl px-4 py-3 text-slate-100 transition-all ring-1 ring-voice-accent/50" id="appointmentDate" readonly="" type="text" value="June 18, 2024"/>
+          </div>
+          <div class="relative">
+            <label class="text-[10px] text-slate-500 font-bold uppercase mb-1 block ml-1">Time</label>
+            <input class="w-full bg-white/5 border-white/10 rounded-xl px-4 py-3 text-slate-100 transition-all ring-1 ring-voice-accent/50" id="appointmentTime" readonly="" type="text" value="02:30 PM"/>
+          </div>
+        </div>
+        <div class="relative">
+          <label class="text-[10px] text-slate-500 font-bold uppercase mb-1 block ml-1">Reason for Visit</label>
+          <div class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-100 min-h-[80px] flex items-center">
+            <span class="text-slate-300" id="visitReason">General Checkup</span>
+            <span class="ml-2 inline-block w-1 h-5 bg-voice-accent animate-pulse"></span>
+          </div>
+        </div>
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-voice-teal/10 to-transparent border border-white/5 mt-4">
+          <div class="flex items-start gap-3">
+            <div class="p-2 bg-voice-teal/20 rounded-lg">
+              <svg class="w-4 h-4 text-voice-teal" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-slate-300">System Recommendation</p>
+              <p class="text-[11px] text-slate-500 leading-relaxed mt-1">Verify health insurance provider for Downtown Clinic network compatibility before final confirmation.</p>
+            </div>
+          </div>
+        </div>
+        <button class="w-full bg-gradient-to-r from-voice-teal to-voice-accent py-4 rounded-xl text-voice-dark font-bold text-sm shadow-xl shadow-voice-teal/20 hover:scale-[1.02] transition-transform mt-auto" onclick="confirmAppointment()">
+          CONFIRM APPOINTMENT
+        </button>
+      </div>
+    </section>
+  </div>
+  <div class="wave-container"><canvas class="wave-canvas" id="waveCanvas"></canvas></div>
+</main>
+
+<script>
+  let activeCallId = null;
+
+  async function pollSessions() {
+    try {
+      const res = await fetch('/api/dashboard/sessions');
+      const sessions = await res.json();
+      if (sessions.length > 0) {
+        const session = sessions[sessions.length - 1]; // Get latest
+        if (activeCallId !== session.callId) {
+          activeCallId = session.callId;
+          document.getElementById('agentStatus').innerHTML = `
+            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+            Agent Active • Call ID: ${activeCallId.substring(0,8)}
+          `;
+        }
+        renderTranscript(session.turns);
+      }
+    } catch (e) { console.error('Polling failed', e); }
+  }
+
+  function renderTranscript(turns) {
+    const container = document.getElementById('transcriptContainer');
+    container.innerHTML = turns.map(turn => `
+      <div class="flex gap-4 ${turn.role === 'user' ? 'flex-row-reverse' : ''}">
+        <div class="w-8 h-8 rounded-full ${turn.role === 'user' ? 'bg-slate-700' : 'bg-voice-teal/20'} flex-shrink-0 flex items-center justify-center border ${turn.role === 'user' ? 'border-white/10' : 'border-voice-teal/30'}">
+          <span class="text-[10px] font-bold ${turn.role === 'user' ? 'text-slate-300' : 'text-voice-teal'}">${turn.role.toUpperCase()}</span>
+        </div>
+        <div class="space-y-1 ${turn.role === 'user' ? 'text-right' : ''}">
+          <p class="text-xs text-slate-500">${turn.role === 'user' ? 'Customer' : 'OmniVoice'} • ${new Date(turn.at).toLocaleTimeString()}</p>
+          <p class="text-slate-200 leading-relaxed ${turn.role === 'user' ? 'bg-voice-accent/10 border border-voice-accent/10' : 'bg-white/5'} p-3 rounded-2xl ${turn.role === 'user' ? 'rounded-tr-none' : 'rounded-tl-none'}">
+            ${turn.text}
+          </p>
+        </div>
+      </div>
+    `).join('');
+    container.scrollTop = container.scrollHeight;
+  }
+
+  async function confirmAppointment() {
+    if (!activeCallId) return alert('No active session');
+    const res = await fetch(`/api/dashboard/appointments/${activeCallId}/confirm`, { method: 'POST' });
+    const data = await res.json();
+    alert(data.message);
+  }
+
+  setInterval(pollSessions, 2000);
+
+  // Wave Animation logic
+  const canvas = document.getElementById('waveCanvas');
+  const ctx = canvas.getContext('2d');
+  let width, height;
+  function resize() { width = canvas.width = canvas.offsetWidth; height = canvas.height = canvas.offsetHeight; }
+  window.addEventListener('resize', resize);
+  resize();
+  class Wave {
+    constructor(color, speed, amplitude, frequency) {
+      this.color = color; this.speed = speed; this.amplitude = amplitude; this.frequency = frequency; this.offset = Math.random() * 100;
+    }
+    draw(t) {
+      ctx.beginPath(); ctx.strokeStyle = this.color; ctx.lineWidth = 2; ctx.moveTo(0, height / 2);
+      for (let x = 0; x < width; x++) {
+        const y = Math.sin(x * this.frequency + t * this.speed + this.offset) * this.amplitude;
+        const opacity = Math.sin((x / width) * Math.PI);
+        ctx.globalAlpha = opacity * 0.4;
+        ctx.lineTo(x, (height / 2) + y);
+      }
+      ctx.stroke();
+    }
+  }
+  const waves = [new Wave('#00f2fe', 0.05, 30, 0.01), new Wave('#4facfe', 0.03, 40, 0.008), new Wave('#70e1f5', 0.04, 25, 0.012)];
+  let time = 0;
+  function animate() {
+    ctx.clearRect(0, 0, width, height); time += 0.5;
+    waves.forEach(wave => wave.draw(time));
+    requestAnimationFrame(animate);
+  }
+  animate();
+</script>
+</body>
+</html>
